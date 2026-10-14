@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OAuth callback</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+        color: #111;
+      }
+      code,
+      pre {
+        background: #f4f4f5;
+        border-radius: 6px;
+      }
+      code {
+        padding: 0.1em 0.35em;
+      }
+      pre {
+        padding: 0.75rem 1rem;
+        overflow-x: auto;
+        word-break: break-all;
+        white-space: pre-wrap;
+      }
+      .ok {
+        color: #166534;
+      }
+      .err {
+        color: #991b1b;
+      }
+      button {
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.9rem;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OAuth callback</h1>
+    <p id="status">読み込み中…</p>
+    <pre id="out"></pre>
+    <button id="copy" type="button" hidden>code をコピー</button>
+    <p>
+      このページは Threads / X などの認可戻り先です。表示された
+      <code>code</code> をターミナルの
+      <code>--code='...'</code> に貼ってください。
+    </p>
+    <script>
+      (function () {
+        const params = new URLSearchParams(location.search);
+        const code = params.get("code");
+        const error = params.get("error");
+        const desc = params.get("error_description") || params.get("error_reason");
+        const status = document.getElementById("status");
+        const out = document.getElementById("out");
+        const copyBtn = document.getElementById("copy");
+
+        if (error) {
+          status.className = "err";
+          status.textContent = "認可エラー";
+          out.textContent = error + (desc ? "\n" + desc : "");
+          return;
+        }
+        if (!code) {
+          status.className = "err";
+          status.textContent = "code がありません";
+          out.textContent =
+            "URL に ?code= が付いていません。認可URLからやり直してください。";
+          return;
+        }
+
+        // Threads は末尾に #_=_ が付くことがある
+        const cleaned = code.replace(/#_=_$/, "").trim();
+        status.className = "ok";
+        status.textContent = "認可成功 — 下の code をコピー";
+        out.textContent = cleaned;
+        copyBtn.hidden = false;
+        copyBtn.onclick = async function () {
+          try {
+            await navigator.clipboard.writeText(cleaned);
+            copyBtn.textContent = "コピーしました";
+          } catch {
+            copyBtn.textContent = "選択して手動コピーしてください";
+            const range = document.createRange();
+            range.selectNodeContents(out);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        };
+      })();
+    </script>
+  </body>
+</html>
